@@ -4,10 +4,58 @@
 #include "exec_time.h"
 #include <math.h>
 #include "matrix_lib.h"
+
+int print_matrix(struct matrix *matrix) {
+  unsigned long int i;
+  unsigned long int N;
+  unsigned long int nxt_newLine;
+
+  /* Check the numbers of the elements of the matrix */
+  N = matrix->height * matrix->width;
+
+  /* Check the integrity of the matrix */
+  if (N == 0 || matrix->h_rows == NULL) return 0;
+
+  /* Initialize new line controol */
+  nxt_newLine = matrix->width - 1;
+
+  /* Print matrix elements */
+  for (i = 0; i < N; i++) {
+     printf("%5.1f ", matrix->h_rows[i]);
+     if (i == nxt_newLine) {
+	printf("\n");
+	nxt_newLine += matrix->width;
+     }
+  }
+
+  return 1;
+}
+
+int load_matrix(struct matrix *matrix, FILE *filename) {
+  unsigned long int i = 0;
+  unsigned long int N = 0;
+
+  /* Check the numbers of the elements of the matrix */
+  N = matrix->height * matrix->width;
+
+  /* Check the integrity of the matrix */
+  if (N == 0 || matrix->h_rows == NULL) return 0;
+
+  float *nxt = matrix->h_rows; 
+
+  for ( i = 0;
+	i < N; 
+	i += 1) {
+    fread(nxt, sizeof(float), 1, filename);
+    matrix->h_rows[i] = *nxt;
+  }
+
+  return 1;
+}
+
 int main_func(int argc, char **argv)
 {
     float scalar = atof(argv[1]);
-    int count;
     Matrix matA, matB;
     matA.height = atoi(argv[2]);
     matA.width = atoi(argv[3]);
@@ -76,38 +124,19 @@ int main_func(int argc, char **argv)
     printf("Initializing array matA and matB on host...");
     gettimeofday(&start, NULL);
 
-    count=0;
-	float* vetA= (float*)malloc((matA.height*matA.width) * sizeof(float));
-	float vetA_aux;
+    load_matrix(&matA, file1);
+    load_matrix(&matB, file2);
+	
+	// Matrix matC;
+	// matC.height = matA.height;
+	// matC.width = matB.width;
 
-	for(int i=0; i<matA.height*matA.width; i++){
-		fread((void*)(&vetA_aux), sizeof(vetA_aux), 1, file1);
-		vetA[count]=vetA_aux;
-		count++;
-	}
-	matA.h_rows = vetA;
+	// float* vetC= (float*)malloc((matC.height*matC.width) * sizeof(float));
 	
-	count=0;
-	float* vetB= (float*)malloc((matB.height*matB.width) * sizeof(float));
-	float vetB_aux;
-	
-	for(int i=0; i<matB.height*matB.width; i++){
-		fread((void*)(&vetB_aux), sizeof(vetB_aux), 1, file2);
-		vetB[count]=vetB_aux;
-		count++;
-	}
-	matB.h_rows = vetB;
-	
-	Matrix matC;
-	matC.height = matA.height;
-	matC.width = matB.width;
-
-	float* vetC= (float*)malloc((matC.height*matC.width) * sizeof(float));
-	
-	for(int i=0; i< (matC.height*matC.width); i++){
-		vetC[i] = 0;
-	}
-	matC.h_rows = vetC;
+	// for(int i=0; i< (matC.height*matC.width); i++){
+	// 	vetC[i] = 0;
+	// }
+	// matC.h_rows = vetC;
 
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
@@ -167,13 +196,16 @@ int main_func(int argc, char **argv)
     // float maxError = 0.0f;
     // float diffError = 0.0f;
 
-    for (i = 0; i < (matA.height*matA.width); i++) {
-        //maxError = (maxError > (diffError=fabs(matA.h_rows[i]-10.0))? maxError : diffError;
-        printf("%d -> %f\n", i, matA.h_rows[i]);
-    }
+    // for (i = 0; i < (matA.height*matA.width); i++) {
+    //     maxError = (maxError > (diffError=fabs(matA.h_rows[i]-3.0))? maxError : diffError;
+    //     printf("%d -> %f\n", i, matA.h_rows[i]);
+    // }
 
     // gettimeofday(&stop, NULL);
     // printf("%f ms\n", timedifference_msec(start, stop));
+
+    //print matrixA
+    print_matrix(&matA);
 
     // Free memory
     printf("Freeing memory...");
