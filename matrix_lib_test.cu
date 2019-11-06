@@ -138,7 +138,7 @@ int main_func(int argc, char **argv)
     gettimeofday(&start, NULL);
 
     scalar_matrix_mult(scalar, &matA);
-    
+
     // Wait for GPU to finish before accessing on host
     cudaDeviceSynchronize();
 
@@ -160,20 +160,20 @@ int main_func(int argc, char **argv)
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
 
-    // Check for errors (all values should be 3.0f)
-    printf("Checking for processing errors...");
-    gettimeofday(&start, NULL);
+    //Check for errors (all values should be 3.0f)
+    // printf("Checking for processing errors...");
+    // gettimeofday(&start, NULL);
 
-    float maxError = 0.0f;
-    float diffError = 0.0f;
+    // float maxError = 0.0f;
+    // float diffError = 0.0f;
+
     for (i = 0; i < (matA.height*matA.width); i++) {
-        maxError = (maxError > (diffError=fabs(matA.h_rows[i]-3.0f)))? maxError : diffError;
-        //printf("%d -> %f\n", i, h_y[i]);
+        //maxError = (maxError > (diffError=fabs(matA.h_rows[i]-10.0))? maxError : diffError;
+        printf("%d -> %f\n", i, matA.h_rows[i]);
     }
 
-    gettimeofday(&stop, NULL);
-    printf("%f ms\n", timedifference_msec(start, stop));
-    printf("Max error: %f\n", maxError);
+    // gettimeofday(&stop, NULL);
+    // printf("%f ms\n", timedifference_msec(start, stop));
 
     // Free memory
     printf("Freeing memory...");

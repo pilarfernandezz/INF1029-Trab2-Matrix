@@ -11,9 +11,13 @@ void mult_scalar(int n , float scalar, float *d_x){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = gridDim.x *blockDim.x;
 
+    //printf("GLOBAL MULT SCALAR: %p ", d_x);
+
     for(int i = index; i < n; i += stride){
-        d_x[i] = d_x[i] * scalar;
-    }   	
+       d_x[i] = d_x[i] * scalar;
+
+    }
+
 }
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix){
@@ -28,7 +32,7 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix){
     int blockSize = THREADS_PER_BLOCK;
     int numBlocks = (h*w + blockSize - 1) / blockSize;
    
-    mult_scalar<<<numBlocks, blockSize>>>(h*w,scalar_value,matrix->d_rows);
+   mult_scalar<<<numBlocks, blockSize>>>(h*w,scalar_value,matrix->d_rows);
 
 	return 1;
 }
