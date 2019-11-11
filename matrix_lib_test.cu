@@ -126,17 +126,33 @@ int main_func(int argc, char **argv)
 
     load_matrix(&matA, file1);
     load_matrix(&matB, file2);
-	
-	// Matrix matC;
-	// matC.height = matA.height;
-	// matC.width = matB.width;
+    
+    gettimeofday(&stop, NULL);
+    printf("%f ms\n", timedifference_msec(start, stop));
 
-	// float* vetC= (float*)malloc((matC.height*matC.width) * sizeof(float));
-	
-	// for(int i=0; i< (matC.height*matC.width); i++){
-	// 	vetC[i] = 0;
-	// }
-	// matC.h_rows = vetC;
+    // Allocating array on device
+    printf("Allocating array matC.d_rows on device...");
+    gettimeofday(&start, NULL);
+
+	Matrix matC;
+	matC.height = matA.height;
+	matC.width = matB.width;
+
+	matC.h_rows = (float*)malloc((matC.height*matC.width)*sizeof(float));
+
+    // check malloc memory allocation
+    if (matC.h_rows == NULL) { 
+        printf("Error: malloc unable to allocate memory on host.");
+            return 1;
+    }
+
+    cudaError = cudaMalloc(&matC.d_rows, matC.height*matC.width*sizeof(float));
+
+    // check cudaMalloc memory allocation
+    if (cudaError != cudaSuccess) {
+        printf("cudaMalloc matC.d_rows returned error %s (code %d)\n", cudaGetErrorString(cudaError), cudaError);
+            return 1;
+    }
 
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
@@ -159,6 +175,13 @@ int main_func(int argc, char **argv)
             return 1;
     }
 
+    cudaError = cudaMemcpy(matC.d_rows, matC.h_rows, (matC.width*matC.height)*sizeof(float), cudaMemcpyHostToDevice);
+
+    if (cudaError != cudaSuccess) {
+        printf("cudaMemcpy matC.d_rows -> matC.h_rows returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
+            return 1;
+    }
+
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
 
@@ -166,6 +189,7 @@ int main_func(int argc, char **argv)
     printf("Running kernel on elements of matA.d_rows ...");
     gettimeofday(&start, NULL);
 
+    float valorAantes = matA.h_rows[0];
     scalar_matrix_mult(scalar, &matA);
 
     // Wait for GPU to finish before accessing on host
@@ -177,7 +201,7 @@ int main_func(int argc, char **argv)
     // Copy array from device to host
     printf("Copying array from device matA.d_rows to host matA.h_rows...");
     gettimeofday(&start, NULL);
-
+    
     cudaError = cudaMemcpy(matA.h_rows,matA.d_rows, (matA.height*matA.width) * sizeof(float), cudaMemcpyDeviceToHost);
 
     if (cudaError != cudaSuccess)
@@ -188,24 +212,60 @@ int main_func(int argc, char **argv)
 
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
+    
+    //Check for errors
+    printf("Checking for processing errors for multiplication of matrix a and scalar...");
+    gettimeofday(&start, NULL);
 
-    //Check for errors (all values should be 3.0f)
-    // printf("Checking for processing errors...");
-    // gettimeofday(&start, NULL);
+    float maxError = 0.0f;
+    float diffError = 0.0f;
+    
+    for (i = 0; i < (matA.height*matA.width); i++) {
+        maxError = (maxError > (diffError=fabs(matA.h_rows[0]-scalar*valorAantes)))? maxError : diffError;
+        //printf("%d -> %f\n", i, matA.h_rows[i]);
+    }
 
-    // float maxError = 0.0f;
-    // float diffError = 0.0f;
-
-    // for (i = 0; i < (matA.height*matA.width); i++) {
-    //     maxError = (maxError > (diffError=fabs(matA.h_rows[i]-3.0))? maxError : diffError;
-    //     printf("%d -> %f\n", i, matA.h_rows[i]);
-    // }
-
-    // gettimeofday(&stop, NULL);
-    // printf("%f ms\n", timedifference_msec(start, stop));
+    gettimeofday(&stop, NULL);
+    printf("%f ms\n", timedifference_msec(start, stop));
+    printf("Max error: %f\n", maxError);
 
     //print matrixA
     print_matrix(&matA);
+
+    matrix_matrix_mult(&matA, &matB, &matC);
+
+    // Wait for GPU to finish before accessing on host
+    cudaDeviceSynchronize();
+
+    // Copy array from device to host
+    printf("Copying array from device matC.d_rows to host matC.h_rows...");
+    gettimeofday(&start, NULL);
+    
+    cudaError = cudaMemcpy(matC.h_rows,matC.d_rows, (matC.height*matC.width) * sizeof(float), cudaMemcpyDeviceToHost);
+
+    if (cudaError != cudaSuccess)
+    {
+        printf("cudaMemcpy matC.d_rows -> matC.h_rows returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
+        return 1;
+    }
+
+    //Check for errors
+    printf("Checking for processing errors for multiplication of matrix a and matrix b...");
+    gettimeofday(&start, NULL);
+
+    maxError = 0.0f;
+    diffError = 0.0f;
+    
+    for (i = 0; i < (matC.height*matC.width); i++) {
+        maxError = (maxError > (diffError=fabs(matC.h_rows[0]-matB.h_rows[0]*matA.h_rows[0])))? maxError : diffError;
+        //printf("%d -> %f\n", i, matA.h_rows[i]);
+    }
+
+    gettimeofday(&stop, NULL);
+    printf("%f ms\n", timedifference_msec(start, stop));
+    printf("Max error: %f\n", maxError);
+
+    print_matrix(&matC);
 
     // Free memory
     printf("Freeing memory...");
@@ -217,5 +277,17 @@ int main_func(int argc, char **argv)
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
     
+    
+    for(int i=0; i<matA.height*matA.width; i++){	
+ 		fwrite((void*)(&matA.h_rows[i]), sizeof(matA.h_rows), 1, result1);
+	}
+    for(int i=0; i<matC.height*matC.width; i++){	
+ 		fwrite((void*)(&matC.h_rows[i]), sizeof(matC.h_rows[i]), 1, result2);
+	}
+
+	fclose(file1);
+	fclose(file2);
+	fclose(result1);
+	fclose(result2);
     return 0;
 }

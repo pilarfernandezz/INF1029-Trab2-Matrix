@@ -10,7 +10,6 @@ __global__
 void mult_scalar(int n , float scalar, float *d_a){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = gridDim.x *blockDim.x;
-
     for(int i = index; i < n; i += stride){
        d_a[i] = d_a[i] * scalar;
     }
@@ -18,17 +17,30 @@ void mult_scalar(int n , float scalar, float *d_a){
 
 __global__
 void mult_matrix(int w_a, int w_b, int h_b, int h_a, float *d_a, float *d_b, float *d_c){
+
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = gridDim.x *blockDim.x;
 
-    for(int i = index; i < n; i += stride){
+    // int l = 1;
 
-        for(int q=0; q < w_a*h_a; q++){
-            for(int w=0; w+2 > w_b*h_b ; w += h_b){
-                    d_c[i] += d_a[q] * d_b[w]
-            }
-        }
-    }
+    // for(int i = index; i < h_a*w_b; i += stride){
+    //     for(int j = (l-1)*w_a; j < l*w_a;j++){
+    //         for (int k = l-1; k < w_b; k+=w_b){
+    //             d_c[i] += d_a[j] * d_b[k];
+    //             printf("%f \n", d_a[j]);
+    //             printf("%f \n", d_b[k]);
+    //             printf("%f \n", d_c[i]);
+    //         }
+    //     }
+    //     l++;
+    // }
+    // for(int k = index; k < h_b*w_a;k+=stride){
+    //     for (int i = 0; i < w_a*h_a ; i++){
+    //         for (int j = 0; j < w_b; j++){
+    //             d_c[k] += d_a[i] *d_b[j];
+    //         }
+    //     }
+    // }
 }
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix){
@@ -49,6 +61,7 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix){
 }
 
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix *matrixB, struct matrix *matrixC){	
+
 	long unsigned int h_a;
 	long unsigned int w_a;
 	long unsigned int h_b;
@@ -67,11 +80,23 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix *matrixB, struct ma
 
     //if errado
 
-    //zerando matriz C
-    for(int p=0; p<h_c*w_c; p++){
-        matrixC->h_rows[p] = 0;
+
+    float **mat = (float **) malloc (w_a*sizeof(float*));
+    for(int i = 0; i< w_a; i++) mat[i] = (float *) malloc (h_a*sizeof(float));
+
+    
+    memcpy(mat, &matrixA->d_rows,h_a*w_a*sizeof(float));
+
+    for (int i = 0; i < w_a;i++){
+        for(int j = 0; j < h_a;j++){
+            printf("matriz[%d][%d] = %f", i,j,mat[i][j]);
+        }
     }
 
-    int i, j, k;
 
+    int blockSize = THREADS_PER_BLOCK;
+    int numBlocks = (h_c*w_c + blockSize - 1) / blockSize;
+    mult_matrix<<<numBlocks, blockSize>>>(w_a, w_b, h_b, h_a,matrixA->d_rows, matrixB->d_rows, matrixC->d_rows);
+
+    return 1;
 }
