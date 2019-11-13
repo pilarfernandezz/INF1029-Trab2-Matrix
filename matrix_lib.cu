@@ -21,30 +21,18 @@ void mult_matrix(int w_a, int w_b, int h_b, int h_a, float *d_a, float *d_b, flo
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = gridDim.x *blockDim.x;
 
-    // int l = 1;
-
-    // for(int i = index; i < h_a*w_b; i += stride){
-    //     for(int j = (l-1)*w_a; j < l*w_a;j++){
-    //         for (int k = l-1; k < w_b; k+=w_b){
-    //             d_c[i] += d_a[j] * d_b[k];
-    //             printf("%f \n", d_a[j]);
-    //             printf("%f \n", d_b[k]);
-    //             printf("%f \n", d_c[i]);
-    //         }
-    //     }
-    //     l++;
-    // }
-    // for(int k = index; k < h_b*w_a;k+=stride){
-    //     for (int i = 0; i < w_a*h_a ; i++){
-    //         for (int j = 0; j < w_b; j++){
-    //             d_c[k] += d_a[i] *d_b[j];
-    //         }
-    //     }
-    // }
+    int w_c = h_a, h_c = w_b;
+    // Calculando a matriz resultante
+    for(int i = index; i < w_c*h_c; i += stride) {
+        d_c[i] = 0;
+        for(int j = 0; j < h_a; j++) {
+            d_c[i] += d_a[(i/h_c)*h_a + j] * d_b[j*h_b + i%h_c];
+        }
+    }
 }
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix){
-	long unsigned int h;
+    long unsigned int h;
 	long unsigned int w;
 
 	h = matrix->height;
@@ -54,7 +42,6 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix){
 
     int blockSize = THREADS_PER_BLOCK;
     int numBlocks = (h*w + blockSize - 1) / blockSize;
-   
     mult_scalar<<<numBlocks, blockSize>>>(h*w,scalar_value,matrix->d_rows);
 
 	return 1;
@@ -77,22 +64,6 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix *matrixB, struct ma
 	w_b = matrixB->width;
 	h_c = matrixC->height;
 	w_c = matrixC->width;
-
-    //if errado
-
-
-    float **mat = (float **) malloc (w_a*sizeof(float*));
-    for(int i = 0; i< w_a; i++) mat[i] = (float *) malloc (h_a*sizeof(float));
-
-    
-    memcpy(mat, &matrixA->d_rows,h_a*w_a*sizeof(float));
-
-    for (int i = 0; i < w_a;i++){
-        for(int j = 0; j < h_a;j++){
-            printf("matriz[%d][%d] = %f", i,j,mat[i][j]);
-        }
-    }
-
 
     int blockSize = THREADS_PER_BLOCK;
     int numBlocks = (h_c*w_c + blockSize - 1) / blockSize;

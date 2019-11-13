@@ -230,10 +230,9 @@ int main_func(int argc, char **argv)
     printf("Max error: %f\n", maxError);
 
     //print matrixA
-    print_matrix(&matA);
-
+    //print_matrix(&matA);
+    
     matrix_matrix_mult(&matA, &matB, &matC);
-
     // Wait for GPU to finish before accessing on host
     cudaDeviceSynchronize();
 
@@ -249,23 +248,7 @@ int main_func(int argc, char **argv)
         return 1;
     }
 
-    //Check for errors
-    printf("Checking for processing errors for multiplication of matrix a and matrix b...");
-    gettimeofday(&start, NULL);
-
-    maxError = 0.0f;
-    diffError = 0.0f;
-    
-    for (i = 0; i < (matC.height*matC.width); i++) {
-        maxError = (maxError > (diffError=fabs(matC.h_rows[0]-matB.h_rows[0]*matA.h_rows[0])))? maxError : diffError;
-        //printf("%d -> %f\n", i, matA.h_rows[i]);
-    }
-
-    gettimeofday(&stop, NULL);
-    printf("%f ms\n", timedifference_msec(start, stop));
-    printf("Max error: %f\n", maxError);
-
-    print_matrix(&matC);
+    //print_matrix(&matC);
 
     // Free memory
     printf("Freeing memory...");
