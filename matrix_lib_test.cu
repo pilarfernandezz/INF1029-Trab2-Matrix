@@ -230,14 +230,15 @@ int main_func(int argc, char **argv)
     printf("Max error: %f\n", maxError);
 
     //print matrixA
-    //print_matrix(&matA);
+    print_matrix(&matA);
     
-    matrix_matrix_mult(&matA, &matB, &matC);
+    if(matrix_matrix_mult(&matA, &matB, &matC) !=1) return 0;
+
     // Wait for GPU to finish before accessing on host
     cudaDeviceSynchronize();
 
     // Copy array from device to host
-    printf("Copying array from device matC.d_rows to host matC.h_rows...");
+    printf("Copying array from device matC.d_rows to host matC.h_rows...\n");
     gettimeofday(&start, NULL);
     
     cudaError = cudaMemcpy(matC.h_rows,matC.d_rows, (matC.height*matC.width) * sizeof(float), cudaMemcpyDeviceToHost);
@@ -248,7 +249,7 @@ int main_func(int argc, char **argv)
         return 1;
     }
 
-    //print_matrix(&matC);
+    print_matrix(&matC);
 
     // Free memory
     printf("Freeing memory...");
@@ -260,9 +261,8 @@ int main_func(int argc, char **argv)
     gettimeofday(&stop, NULL);
     printf("%f ms\n", timedifference_msec(start, stop));
     
-    
     for(int i=0; i<matA.height*matA.width; i++){	
- 		fwrite((void*)(&matA.h_rows[i]), sizeof(matA.h_rows), 1, result1);
+ 		fwrite((void*)(&matA.h_rows[i]), sizeof(matA.h_rows[i]), 1, result1);
 	}
     for(int i=0; i<matC.height*matC.width; i++){	
  		fwrite((void*)(&matC.h_rows[i]), sizeof(matC.h_rows[i]), 1, result2);
